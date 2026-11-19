@@ -36,14 +36,25 @@
         const plaintext = await crypto.subtle.decrypt(
           { name: "AES-GCM", iv: bytes.slice(0, 12) }, key, bytes.slice(12)
         );
-        document.open();
-        document.write(new TextDecoder().decode(plaintext));
-        document.close();
+        const html = new TextDecoder().decode(plaintext);
+        const page = new DOMParser().parseFromString(html, "text/html");
+        for (const metadata of document.querySelectorAll('meta[name="robots"], meta[name="referrer"]')) {
+          page.head.append(metadata.cloneNode(true));
+        }
+        document.documentElement.replaceChildren(
+          document.importNode(page.head, true), document.importNode(page.body, true)
+        );
+        for (const inertScript of document.querySelectorAll("script")) {
+          const script = document.createElement("script");
+          script.textContent = inertScript.textContent;
+          inertScript.replaceWith(script);
+        }
       } catch {
         status.textContent = "페이지를 열 수 없습니다. 보내 드린 링크를 다시 확인해 주세요.";
       }
     }
 
+    window.addEventListener("hashchange", () => location.reload());
     openPage();
   </script>
 </body>
